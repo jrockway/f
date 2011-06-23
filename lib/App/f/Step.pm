@@ -19,6 +19,14 @@ has 'tick_cb' => (
     },
 );
 
+has 'completion_cb' => (
+    traits  => ['Code'],
+    isa     => 'CodeRef',
+    handles => {
+        done => 'execute',
+    },
+);
+
 has 'error_cb' => (
     traits  => ['Code'],
     isa     => 'CodeRef',
