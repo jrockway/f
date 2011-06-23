@@ -16,7 +16,7 @@ has 'dependencies' => (
 requires 'duration';
 
 # run the job and keep the caller informed of the status.  takes args:
-# hashref of satisfied deps, progress callback, completion callback,
+# manager, hashref of satisfied deps, progress callback, completion callback,
 # error callback
 requires 'execute';
 
