@@ -11,6 +11,22 @@ has 'dependencies' => (
     default => sub { set },
 );
 
+has 'tick_cb' => (
+    traits  => ['Code'],
+    isa     => 'CodeRef',
+    handles => {
+        tick => 'execute',
+    },
+);
+
+has 'error_cb' => (
+    traits  => ['Code'],
+    isa     => 'CodeRef',
+    handles => {
+        error => 'execute',
+    },
+);
+
 # calculate and return the estimated duration in total number of calls
 # to the completion callback ("ticks")
 requires 'duration';
