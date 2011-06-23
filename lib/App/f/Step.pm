@@ -40,8 +40,7 @@ has 'error_cb' => (
 requires 'duration';
 
 # run the job and keep the caller informed of the status.  takes args:
-# manager, hashref of satisfied deps, progress callback, completion callback,
-# error callback
+# hashref of satisfied deps
 requires 'execute';
 
 1;
