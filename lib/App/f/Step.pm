@@ -1,4 +1,4 @@
-package f::Step;
+package App::f::Step;
 # ABSTRACT: a task to perform that takes time and has dependencies
 use Moose::Role;
 use namespace::autoclean;
