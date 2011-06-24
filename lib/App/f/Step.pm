@@ -5,10 +5,15 @@ use namespace::autoclean;
 use Set::Object qw(set);
 use MooseX::Types::Set::Object;
 
-has 'dependencies' => (
+has '_dependencies' => (
     is      => 'ro',
     isa     => 'Set::Object',
     default => sub { set },
+    handles => {
+        add_dependency   => 'insert',
+        dependencies     => 'members',
+        has_dependencies => 'count',
+    },
 );
 
 has 'tick_cb' => (
@@ -16,7 +21,7 @@ has 'tick_cb' => (
     isa      => 'CodeRef',
     required => 1,
     handles  => {
-        tick => 'execute',
+        tick => 'execute_method',
     },
 );
 
@@ -25,7 +30,7 @@ has 'completion_cb' => (
     isa      => 'CodeRef',
     required => 1,
     handles  => {
-        done => 'execute',
+        done => 'execute_method',
     },
 );
 
@@ -34,16 +39,23 @@ has 'error_cb' => (
     isa      => 'CodeRef',
     required => 1,
     handles  => {
-        error => 'execute',
+        error => 'execute_method',
     },
 );
-
-# calculate and return the estimated duration in total number of calls
-# to the completion callback ("ticks")
-requires 'duration';
 
 # run the job and keep the caller informed of the status.  takes args:
 # hashref of satisfied deps
 requires 'execute';
+
+# given another step, returns true if this step is identical.  note
+# that if $a->equals($b) then $b->equals($a).  violating this
+# condition may result in serious injury.
+#
+# defaults to nothing being equal to anything else.
+
+sub equals {
+    my ($self, $other) = @_;
+    return;
+}
 
 1;
