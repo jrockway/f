@@ -2,3 +2,4 @@ cover_db
 TAGS
 f.*
 .build
+t/tmp
