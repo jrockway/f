@@ -12,33 +12,28 @@ has 'dependencies' => (
 );
 
 has 'tick_cb' => (
-    traits  => ['Code'],
-    isa     => 'CodeRef',
-    handles => {
+    traits   => ['Code'],
+    isa      => 'CodeRef',
+    required => 1,
+    handles  => {
         tick => 'execute',
     },
 );
 
 has 'completion_cb' => (
-    traits  => ['Code'],
-    isa     => 'CodeRef',
-    handles => {
-        done => 'execute',
-    },
-);
-
-has 'completion_cb' => (
-    traits  => ['Code'],
-    isa     => 'CodeRef',
-    handles => {
+    traits   => ['Code'],
+    isa      => 'CodeRef',
+    required => 1,
+    handles  => {
         done => 'execute',
     },
 );
 
 has 'error_cb' => (
-    traits  => ['Code'],
-    isa     => 'CodeRef',
-    handles => {
+    traits   => ['Code'],
+    isa      => 'CodeRef',
+    required => 1,
+    handles  => {
         error => 'execute',
     },
 );
