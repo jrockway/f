@@ -16,6 +16,7 @@ my $out = dir($FindBin::Bin, 'tmp', 'downloads');
 my $s = App::f::Step::Download->new({
     download_directory => $out,
     mirror             => 'http://search.cpan.org/CPAN/',
+    add_step_cb        => sub { },
     completion_cb      => sub { shift; $cv->send(@_) },
     error_cb           => sub { shift; $cv->croak(\@_) },
     tick_cb            => sub { },

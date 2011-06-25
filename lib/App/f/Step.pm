@@ -16,6 +16,15 @@ has '_dependencies' => (
     },
 );
 
+has 'add_step_cb' => (
+    traits   => ['Code'],
+    isa      => 'CodeRef',
+    required => 1,
+    handles  => {
+        add_step => 'execute_method',
+    },
+);
+
 has 'tick_cb' => (
     traits   => ['Code'],
     isa      => 'CodeRef',

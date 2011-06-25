@@ -59,6 +59,8 @@ sub execute {
     $self->download($uri, $target, sub {
         $self->done({ file => $target });
     });
+
+    return;
 }
 
 with 'App::f::Step';

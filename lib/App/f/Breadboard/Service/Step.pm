@@ -12,8 +12,7 @@ sub BUILD {
             $_,
             Bread::Board::Dependency->new( service_path => "/f/$_" ),
         )
-    } qw/tick_cb completion_cb error_cb/;
-
+    } qw/tick_cb completion_cb error_cb add_step_cb/;
 }
 
 __PACKAGE__->meta->make_immutable;

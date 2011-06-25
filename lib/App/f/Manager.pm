@@ -7,7 +7,6 @@ use MooseX::Types::Set::Object;
 
 use Bread::Board;
 use List::Util qw(first reduce);
-use List::MoreUtils qw(natatime);
 use Params::Util qw(_HASH);
 use Set::Object qw(set);
 use Scalar::Util qw(weaken);
@@ -47,6 +46,13 @@ has 'breadboard' => (
     },
 );
 
+sub handle_add_step {
+    my ($self, $calling_step, $name, $args) = @_;
+    my $step = $self->build_object( $name, $args );
+    $self->add_step( $step );
+    return $step;
+}
+
 sub handle_success {
     my ($self, $step, $result) = @_;
 
@@ -76,7 +82,6 @@ sub handle_error {
 
 sub add_step {
     my ($self, $step) = @_;
-
     my $exists = first { $step->equals($_) } $self->get_worklist;
     $self->add_work($step) unless $exists;
     $self->dispatch;
@@ -101,28 +106,19 @@ sub execute_step {
 
     $self->delete_work($step);
 
-    # returns any new steps to build and enqueue
     return $step->execute(\%deps);
 }
 
 sub build_object {
     my ($self, $class, $args) = @_;
-    return $self->resolve_service( $class, parameters => $args );
+    my @params = defined $args ? ( parameters => $args ) : () ;
+    return $self->resolve_service( $class, @params );
 }
 
 sub dispatch {
     my $self = shift;
     my @ready = grep { $self->ready_to_execute($_) } $self->get_worklist;
-    my @specs = map { $self->execute_step($_) } @ready;
-
-    my $i = natatime 2, @specs;
-
-    while( my ($class, $args) = $i->() ) {
-        $self->add_work(
-            $self->build_object( $class, $args ),
-        );
-    }
-
+    $self->execute_step($_) for @ready;
     return;
 }
 
@@ -137,6 +133,7 @@ sub build_breadboard {
             tick_cb       => 'handle_progress',
             completion_cb => 'handle_success',
             error_cb      => 'handle_error',
+            add_step_cb   => 'handle_add_step',
         );
 
         for my $service (keys %method_map) {
