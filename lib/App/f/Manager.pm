@@ -48,9 +48,7 @@ has 'breadboard' => (
 
 sub handle_add_step {
     my ($self, $calling_step, $name, $args) = @_;
-    my $step = $self->build_object( $name, $args );
-    $self->add_step( $step );
-    return $step;
+    return $self->add_step( $name, $args );
 }
 
 sub handle_success {
@@ -81,17 +79,23 @@ sub handle_error {
 }
 
 sub add_step {
-    my ($self, $step) = @_;
+    my ($self, $step, $arg) = @_;
+
+    if(!blessed $step){
+        $step = $self->build_step( $step, $arg );
+    }
+
     my $exists = first { $step->equals($_) } $self->get_worklist;
     $self->add_work($step) unless $exists;
     $self->dispatch;
+
+    return $step;
 }
 
 sub ready_to_execute {
     my ($self, $step) = @_;
     return reduce { $a && $b } 1, 1, map { $self->has_state_for($_) } $step->dependencies;
 }
-
 sub execute_step {
     my ($self, $step) = @_;
     my @deps = $step->dependencies;
@@ -109,7 +113,7 @@ sub execute_step {
     return $step->execute(\%deps);
 }
 
-sub build_object {
+sub build_step {
     my ($self, $class, $args) = @_;
     my @params = defined $args ? ( parameters => $args ) : () ;
     return $self->resolve_service( $class, @params );

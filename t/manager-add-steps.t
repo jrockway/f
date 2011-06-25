@@ -42,7 +42,7 @@ $manager->add_service(
     App::f::Breadboard::Service::Step->new(name  => $_, class => $_),
 ) for qw/Adder WithDep WithoutDep/;
 
-$manager->add_step($manager->build_object('Adder'));
+$manager->add_step('Adder');
 
 ok $manager->state_for( 'add_step' ),    'finished the Adder step';
 ok $manager->state_for( 'with_dep' ),    'finished the step with a dependency on added_step';

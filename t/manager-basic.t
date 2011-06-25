@@ -80,36 +80,30 @@ $manager->add_service(
     ),
 );
 
-my $get_moose = $manager->build_object( 'Get', { dist => 'Moose' } );
-$manager->add_step( $get_moose );
-
+$manager->add_step( 'Get', { dist => 'Moose' } );
 is $get, 1, 'got moose';
 ok $manager->has_state_for('Moose:unpack'), 'unpacked Moose';
 
-my $build_moose = $manager->build_object( 'Build', { dist => 'Moose' } );
-$build_moose->add_dependency('Class::MOP:install');
-$manager->add_step( $build_moose);
-
+$manager->add_step( 'Build', {
+    dist  => 'Moose',
+    fixup => sub {
+        my $obj = shift;
+        $obj->add_dependency('Class::MOP:install');
+        return $obj;
+    },
+});
 ok !$build, 'cannot build moose yet, need cmop';
 
-my $install_moose = $manager->build_object( 'Install', { dist => 'Moose' } );
-$manager->add_step( $install_moose );
-
+$manager->add_step( 'Install', { dist => 'Moose' } );
 ok !$install, 'cannot install moose yet, need to build it';
 
-my $install_cmop = $manager->build_object( 'Install', { dist => 'Class::MOP' } );
-$manager->add_step( $install_cmop );
-
+$manager->add_step( 'Install', { dist => 'Class::MOP' } );
 ok !$install, 'cannot install cmop yet, need to build it';
 
-my $build_cmop = $manager->build_object( 'Build', { dist => 'Class::MOP' } );
-$manager->add_step( $build_cmop );
-
+$manager->add_step( 'Build', { dist => 'Class::MOP' } );
 ok !$build, 'cannot build cmop yet, need to get it';
 
-my $get_cmop = $manager->build_object( 'Get', { dist => 'Class::MOP' } );
-$manager->add_step( $get_cmop );
-
+my $get_cmop = $manager->add_step( 'Get', { dist => 'Class::MOP' } );
 is $get, 2, 'got cmop and moose';
 is $build, 2, 'built cmop and moose';
 is $install, 2, 'installed cmop and moose';
