@@ -4,7 +4,8 @@ use Test::More;
 use ok 'App::f::Manager';
 use App::f::Breadboard::Service::Step;
 
-my $manager = App::f::Manager->new;
+my $completed = 0;
+my $manager = App::f::Manager->new( completion_cb => sub { $completed++ } );
 
 my ($get, $build, $install);
 
@@ -84,6 +85,8 @@ $manager->add_step( 'Get', { dist => 'Moose' } );
 is $get, 1, 'got moose';
 ok $manager->has_state_for('Moose:unpack'), 'unpacked Moose';
 
+is $completed, 1, 'ran out of work';
+
 $manager->add_step( 'Build', {
     dist  => 'Moose',
     fixup => sub {
@@ -107,5 +110,7 @@ my $get_cmop = $manager->add_step( 'Get', { dist => 'Class::MOP' } );
 is $get, 2, 'got cmop and moose';
 is $build, 2, 'built cmop and moose';
 is $install, 2, 'installed cmop and moose';
+
+is $completed, 2, 'ran out of work again';
 
 done_testing;

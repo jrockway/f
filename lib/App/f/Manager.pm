@@ -19,6 +19,7 @@ has 'work' => (
         get_worklist => 'members',
         add_work     => 'insert',
         delete_work  => 'delete',
+        has_work     => 'size',
     },
 );
 
@@ -43,6 +44,16 @@ has 'breadboard' => (
     handles => {
         resolve_service => [ qw/resolve service/ ],
         add_service     => 'add_service',
+    },
+);
+
+has 'completion_cb' => (
+    is       => 'ro',
+    isa      => 'CodeRef',
+    traits   => ['Code'],
+    required => 1,
+    handles  => {
+        finish => 'execute_method',
     },
 );
 
@@ -76,6 +87,8 @@ sub handle_progress {
 sub handle_error {
     my ($self, $step, @rest) = @_;
     print "error: @rest\n";
+
+    $self->dispatch;
 }
 
 sub add_step {
@@ -121,6 +134,12 @@ sub build_step {
 
 sub dispatch {
     my $self = shift;
+
+    if( !$self->has_work ) {
+        $self->finish;
+        return;
+    }
+
     my @ready = grep { $self->ready_to_execute($_) } $self->get_worklist;
     $self->execute_step($_) for @ready;
     return;
