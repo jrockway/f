@@ -2,7 +2,6 @@ use strict;
 use warnings;
 use Test::More;
 use ok 'App::f::Manager';
-use App::f::Breadboard::Service::Step;
 
 my $completed = 0;
 my $manager = App::f::Manager->new( completion_cb => sub { $completed++ } );
@@ -57,29 +56,20 @@ my ($get, $build, $install);
   }
 }
 
-$manager->add_service(
-    App::f::Breadboard::Service::Step->new(
-        name       => 'Get',
-        class      => 'Get',
-        parameters => { dist => { required => 1 } },
-    ),
-);
+$manager->add_step_type( Get => {
+    class      => 'Get',
+    parameters => { dist => { required => 1 } },
+});
 
-$manager->add_service(
-    App::f::Breadboard::Service::Step->new(
-        name       => 'Build',
-        class      => 'Build',
-        parameters => { dist => { required => 1 } },
-    ),
-);
+$manager->add_step_type( Build => {
+    class      => 'Build',
+    parameters => { dist => { required => 1 } },
+});
 
-$manager->add_service(
-    App::f::Breadboard::Service::Step->new(
-        name       => 'Install',
-        class      => 'Install',
-        parameters => { dist => { required => 1 } },
-    ),
-);
+$manager->add_step_type( Install => {
+    class      => 'Install',
+    parameters => { dist => { required => 1 } },
+});
 
 $manager->add_step( 'Get', { dist => 'Moose' } );
 is $get, 1, 'got moose';

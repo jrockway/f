@@ -6,6 +6,7 @@ use namespace::autoclean;
 use MooseX::Types::Set::Object;
 
 use Bread::Board;
+use App::f::Breadboard::Service::Step;
 use List::Util qw(first reduce);
 use Params::Util qw(_HASH);
 use Set::Object qw(set);
@@ -89,6 +90,19 @@ sub handle_error {
     print "error: @rest\n";
 
     $self->dispatch;
+}
+
+sub add_step_type {
+    my ($self, $name, $def) = @_;
+
+    my $step = App::f::Breadboard::Service::Step->new(
+        name => $name,
+        %$def,
+    );
+
+    $self->add_service($step);
+
+    return $step;
 }
 
 sub add_step {

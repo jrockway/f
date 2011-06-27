@@ -40,9 +40,8 @@ my $manager = App::f::Manager->new( completion_cb => sub { $completed++ } );
   }
 }
 
-$manager->add_service(
-    App::f::Breadboard::Service::Step->new(name  => $_, class => $_),
-) for qw/Adder WithDep WithoutDep/;
+$manager->add_step_type( $_ => { class => $_ } )
+    for qw/Adder WithDep WithoutDep/;
 
 $manager->add_step('Adder');
 
