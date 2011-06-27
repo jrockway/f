@@ -76,6 +76,7 @@ is $get, 1, 'got moose';
 ok $manager->has_state_for('Moose:unpack'), 'unpacked Moose';
 
 is $completed, 1, 'ran out of work';
+is $manager->has_completed_steps, 1, 'completed 1 step';
 
 $manager->add_step( 'Build', {
     dist  => 'Moose',
@@ -102,5 +103,9 @@ is $build, 2, 'built cmop and moose';
 is $install, 2, 'installed cmop and moose';
 
 is $completed, 2, 'ran out of work again';
+
+ok !$manager->has_work, 'no work to do';
+ok !$manager->has_running_steps, 'nothing running';
+is $manager->has_completed_steps, 6, 'has completed steps';
 
 done_testing;

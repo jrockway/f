@@ -24,6 +24,29 @@ has 'work' => (
     },
 );
 
+has 'running' => (
+    is      => 'ro',
+    isa     => 'Set::Object',
+    default => sub { set },
+    handles => {
+        get_running_steps   => 'members',
+        insert_running_step => 'insert',
+        remove_running_step => 'delete',
+        has_running_steps   => 'size',
+    },
+);
+
+has 'completed' => (
+    is      => 'ro',
+    isa     => 'Set::Object',
+    default => sub { set },
+    handles => {
+        get_completed_steps   => 'members',
+        insert_completed_step => 'insert',
+        has_completed_steps   => 'size',
+    },
+);
+
 # TODO: perhaps have the concept of "error results" so that we can
 # cancel any steps that depend on erroneous data
 has 'state' => (
@@ -77,6 +100,8 @@ sub handle_success {
         $self->add_state($key, $result->{$key});
     }
 
+    $self->remove_running_step($step);
+    $self->insert_completed_step($step);
     $self->dispatch;
 }
 
@@ -89,6 +114,8 @@ sub handle_error {
     my ($self, $step, @rest) = @_;
     print "error: @rest\n";
 
+    $self->remove_running_step($step);
+    $self->insert_completed_step($step);
     $self->dispatch;
 }
 
@@ -112,7 +139,10 @@ sub add_step {
         $step = $self->build_step( $step, $arg );
     }
 
-    my $exists = first { $step->equals($_) } $self->get_worklist;
+    my $exists = first { $step->equals($_) } (
+        $self->get_worklist, $self->get_running_steps, $self->get_completed_steps,
+    );
+
     $self->add_work($step) unless $exists;
     $self->dispatch;
 
@@ -123,6 +153,7 @@ sub ready_to_execute {
     my ($self, $step) = @_;
     return reduce { $a && $b } 1, 1, map { $self->has_state_for($_) } $step->dependencies;
 }
+
 sub execute_step {
     my ($self, $step) = @_;
     my @deps = $step->dependencies;
@@ -135,6 +166,7 @@ sub execute_step {
         $deps{$dep} = $self->state_for($dep);
     }
 
+    $self->insert_running_step($step);
     $self->delete_work($step);
 
     return $step->execute(\%deps);
