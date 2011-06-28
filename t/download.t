@@ -13,7 +13,15 @@ use App::f::Step::Download;
 my $cv = AnyEvent->condvar;
 
 my $out = dir($FindBin::Bin, 'tmp', 'downloads');
+
+my $dist = App::f::Dist->new(
+    name    => 'Moose',
+    version => '2.0010',
+    source  => 'cpan://D/DO/DOY/Moose-2.0010.tar.gz'
+);
+
 my $s = App::f::Step::Download->new({
+    dist               => $dist,
     download_directory => $out,
     mirror             => 'http://search.cpan.org/CPAN/',
     add_step_cb        => sub { },
@@ -22,13 +30,7 @@ my $s = App::f::Step::Download->new({
     tick_cb            => sub { },
 });
 
-my $dist = App::f::Dist->new(
-    name    => 'Moose',
-    version => '2.0010',
-    source  => 'cpan://D/DO/DOY/Moose-2.0010.tar.gz'
-);
-
-$s->execute({ distribution => $dist });
+$s->execute;
 
 my $res = try {
     $cv->recv;
@@ -37,7 +39,7 @@ catch {
     croak $_;
 };
 
-ok -f $res->{file};
-is -s $res->{file}, 661633;
+ok -f $res->{'Moose:download'};
+is -s $res->{'Moose:download'}, 661633;
 
 done_testing;

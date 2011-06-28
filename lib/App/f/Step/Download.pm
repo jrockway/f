@@ -1,10 +1,13 @@
 package App::f::Step::Download;
-
+# ABSTRACT: download stuff from CPAN (and elsewhere)
 use Moose;
-use LWP::Simple;
+use namespace::autoclean;
+
 use MooseX::Types::Path::Class 'Dir';
 use MooseX::Types::URI 'Uri';
-use namespace::autoclean;
+
+use AnyEvent::HTTP;
+use File::Slurp qw(write_file);
 
 has mirror => (
     is       => 'ro',
@@ -22,33 +25,22 @@ has download_directory => (
 
 sub download {
     my ($self, $uri, $file, $cb) = @_;
-
-    my $pid = fork;
-
-    if (!$pid) {
-        mirror($uri, $file);
-        exit 0;
-    }
-
-    my $done = AnyEvent->condvar;
-    my $c = AnyEvent->child(
-        pid => $pid,
-        cb  => sub {
-            $self->error('download failed with status ' . $_[1])
-                if $_[1] != 0;
-            $done->send;
-        },
-    );
-
-    $done->recv;
-    $cb->();
+    http_get $uri, sub {
+        my ($data, $headers) = @_;
+        $self->tick( message => sprintf(
+            'Downloaded %s (%d) to %s',
+            $uri,
+            length $data,
+            $file,
+        ));
+        write_file( $file->stringify, $data );
+        $cb->( $file );
+    };
 }
-
-sub duration { 1 }
 
 sub execute {
     my ($self, $deps) = @_;
-    my $dist = $deps->{distribution};
+    my $dist = $self->dist;
 
     (my $cpan_path = $dist->source) =~ s|^cpan://||;
     my $uri = join '/', $self->mirror, 'authors', 'id', $cpan_path;
@@ -57,13 +49,13 @@ sub execute {
     $target->parent->mkpath;
 
     $self->download($uri, $target, sub {
-        $self->done({ file => $target });
+        $self->done({ $self->named_dep('download') => $target });
     });
 
     return;
 }
 
-with 'App::f::Step';
+with 'App::f::Step::WithDist';
 
 __PACKAGE__->meta->make_immutable;
 
