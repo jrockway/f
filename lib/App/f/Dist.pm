@@ -26,7 +26,7 @@ sub to_id {
     return $self->name;
 }
 
-sub named_step {
+sub named_dep {
     my ($self, $step) = @_;
     return join ':', $self->to_id, $step;
 }

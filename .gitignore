@@ -1,5 +1,5 @@
 cover_db
 TAGS
-f.*
+f*.gz
 .build
 t/tmp

@@ -8,7 +8,7 @@ use MooseX::Types::Set::Object;
 use Bread::Board;
 use App::f::Breadboard::Service::Step;
 use List::Util qw(first reduce);
-use Params::Util qw(_HASH);
+use Params::Util qw(_HASH0);
 use Set::Object qw(set);
 use Scalar::Util qw(weaken);
 
@@ -90,7 +90,7 @@ sub handle_success {
     my ($self, $step, $result) = @_;
 
     confess "result from step '$step' should be a hashref, not $result"
-        unless _HASH($result);
+        unless _HASH0($result);
 
     for my $key (keys %$result){
         # XXX: logger?

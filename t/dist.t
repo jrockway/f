@@ -11,6 +11,6 @@ my $dist = App::f::Dist->new(
 );
 
 is $dist->to_id, 'Foo-Bar';
-is $dist->named_step('unpack'), 'Foo-Bar:unpack';
+is $dist->named_dep('unpack'), 'Foo-Bar:unpack';
 
 done_testing;
