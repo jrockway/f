@@ -18,7 +18,12 @@ sub BUILD {
 
 sub execute {
     my ($self, $deps) = @_;
-    $self->done({});
+
+    my $module = $self->module;
+    my $version = $deps->{ "$module:install" } || '(unknown)';
+
+    $self->tick( message => "Successfully installed ". $self->module. " <$version>" );
+    $self->done({ "$module:installed" => $version });
 }
 
 __PACKAGE__->meta->make_immutable;

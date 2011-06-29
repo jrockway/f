@@ -20,4 +20,9 @@ sub add_named_dep {
     $self->add_dependency( $self->named_dep($name) );
 }
 
+sub get_named_dep {
+    my ($self, $deps, $name) = @_;
+    $deps->{$self->named_dep($name)};
+}
+
 1;

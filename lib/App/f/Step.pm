@@ -67,4 +67,9 @@ sub equals {
     return;
 }
 
+sub TO_JSON {
+    my $self = shift;
+    return { map { ($_ => scalar $self->$_ ) } map { $_->name } grep { $_->name ne '_dependencies' } grep { $_->{isa} ne 'CodeRef' } $self->meta->get_all_attributes };
+}
+
 1;

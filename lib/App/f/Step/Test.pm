@@ -8,13 +8,32 @@ with 'App::f::Step::WithDist';
 sub BUILD {
     my $self = shift;
     $self->add_named_dep('unpack');
+    $self->add_named_dep('configure');
     $self->add_named_dep('build');
 }
 
 sub execute {
     my ($self, $deps) = @_;
-    $self->tick( message => "Testing ". $self->dist_name );
-    $self->done({ $self->named_dep('test') => 1 });
+
+    my $dir        = $self->get_named_dep($deps, 'unpack');
+    my $build_type = $self->get_named_dep($deps, 'configure');
+
+    my $test_cmd = $build_type eq 'Build.PL' ? ['perl', 'Build', 'test'] : ['make', 'test'];
+
+    my $test = AnyEvent::Subprocess->new(
+        code => sub {
+            chdir $dir;
+            exec @$test_cmd,
+        },
+        on_completion => sub {
+            $self->tick( message => 'Tested '. $self->dist_name );
+            $self->done({ $self->named_dep('test') => 1 });
+        },
+    );
+
+    $test->run;
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -5,16 +5,92 @@ use namespace::autoclean;
 
 with 'App::f::Step::WithDist';
 
+has 'prereqs' => (
+    init_arg => 'prereqs',
+    isa      => 'ArrayRef[Str]',
+    required => 1,
+    traits   => ['Array'],
+    handles  => { prereqs => 'elements' },
+);
+
 sub BUILD {
     my $self = shift;
     $self->add_named_dep('unpack');
     $self->add_named_dep('meta');
+
+    for my $mod ($self->prereqs){
+        $self->add_dependency( "$mod:installed" );
+    }
+}
+
+sub do_configure {
+    my ($self, $dir, $cb) = @_;
+
+    my $makefile_pl = $dir->file('Makefile.PL');
+    my $build_pl    = $dir->file('Build.PL');
+
+    my $type;
+
+    $type = 'Build.PL' if -e $build_pl;
+    $type = 'Makefile.PL' if -e $makefile_pl;
+
+    if(!$type){
+        $self->error( sprintf(
+            q{Don't know how to configure %s: no Build.PL or Makefile.PL},
+            $self->dist_name,
+        ));
+
+        return;
+    }
+
+    my $config = AnyEvent::Subprocess->new(
+        code          => sub { close *STDIN; chdir $dir; exec 'perl', $type },
+        on_completion => sub {
+            $self->tick( message => 'configured ' . $self->dist->name );
+            $cb->($type);
+        },
+    );
+
+    $config->run;
+}
+
+sub read_meta {
+    my ($self, $dir) = @_;
+
 }
 
 sub execute {
     my ($self, $deps) = @_;
-    $self->tick( message => 'configured ' . $self->dist->name );
-    $self->done({ $self->named_dep('configure') => 1 });
+
+    my $dir = $deps->{$self->named_dep('unpack')};
+
+    $self->do_configure($dir, sub {
+        my $type = shift;
+
+        # my $meta = $self->reread_meta;
+        my $meta = $self->get_named_dep($deps, 'meta');
+
+        my @prereqs;
+        for my $stage (qw/build runtime test/){
+            my $requires = $meta->prereqs->{$stage}{requires};
+            for my $module (keys %$requires){
+                my $version = $requires->{$module};
+                $self->add_step( Want => { module => $module, version => $version || 0 } );
+                push @prereqs, $module;
+            }
+        }
+
+        $self->add_step( Build => {
+            dist    => $self->dist,
+            prereqs => \@prereqs,
+        });
+
+        $self->done({
+            $self->named_dep('configure') => $type,
+        });
+    });
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;

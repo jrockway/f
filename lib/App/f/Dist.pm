@@ -23,12 +23,16 @@ has 'source' => (
 
 sub to_id {
     my ($self) = @_;
-    return $self->name;
+    return 'dist<'. $self->name. '>';
 }
 
 sub named_dep {
     my ($self, $step) = @_;
     return join ':', $self->to_id, $step;
+}
+
+sub TO_JSON {
+    return { dist => $_[0]->to_id };
 }
 
 __PACKAGE__->meta->make_immutable;

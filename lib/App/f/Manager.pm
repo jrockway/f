@@ -11,6 +11,7 @@ use List::Util qw(first reduce);
 use Params::Util qw(_HASH0);
 use Set::Object qw(set);
 use Scalar::Util qw(weaken);
+use JSON;
 
 has 'work' => (
     is      => 'ro',
@@ -81,6 +82,25 @@ has 'completion_cb' => (
     },
 );
 
+has 'error_cb' => (
+    is       => 'ro',
+    isa      => 'CodeRef',
+    traits   => ['Code'],
+    required => 1,
+    handles  => {
+        finish_with_error => 'execute_method',
+    },
+);
+
+sub format_step {
+    my ($self, $step) = @_;
+    my $name = $step->meta->name;
+    $name =~ s/^App::f::Step:://g;
+    my $json = JSON->new->allow_blessed(1)->convert_blessed(1)->encode($step);
+    return "$name=$json";
+
+}
+
 sub handle_add_step {
     my ($self, $calling_step, $name, $args) = @_;
     return $self->add_step( $name, $args );
@@ -89,12 +109,14 @@ sub handle_add_step {
 sub handle_success {
     my ($self, $step, $result) = @_;
 
-    confess "result from step '$step' should be a hashref, not $result"
+    my $pretty_step = $self->format_step($step);
+
+    confess "result from step '$pretty_step' should be a hashref, not $result"
         unless _HASH0($result);
 
     for my $key (keys %$result){
         # XXX: logger?
-        warn "step $step is overwriting state $key.  this is bad."
+        warn "step $pretty_step is overwriting state $key.  this is bad."
             if $self->has_state_for($key);
 
         $self->add_state($key, $result->{$key});
@@ -143,6 +165,12 @@ sub add_step {
         $self->get_worklist, $self->get_running_steps, $self->get_completed_steps,
     );
 
+    if($exists){
+        my $pretty_step = $self->format_step($step);
+        my $pretty_exists = $self->format_step($exists);
+        print "Newly added step $pretty_step equals old step $pretty_exists.  Skipping.\n"
+    }
+
     $self->add_work($step) unless $exists;
     $self->dispatch;
 
@@ -188,7 +216,28 @@ sub dispatch {
 
     my @ready = grep { $self->ready_to_execute($_) } $self->get_worklist;
     $self->execute_step($_) for @ready;
+
+    if( $self->has_work && !$self->has_running_steps ){
+        my @deadlocked_on = grep { @{$_->[1]} > 0 }
+            map { [ $_, [$self->is_deadlocked_on($_)] ] }
+                $self->get_worklist;
+
+        $self->finish_with_error(
+            join "\n    ", "Deadlocked on:", map {
+                $self->format_step($_->[0]). ':  '. join(', ', @{$_->[1]})
+            } @deadlocked_on,
+        );
+    }
+
     return;
+}
+
+sub is_deadlocked_on {
+    my ($self, $step) = @_;
+    my @deps = grep { !$self->has_state_for($_) } $step->dependencies;
+
+    return unless @deps;
+    return @deps;
 }
 
 sub build_breadboard {

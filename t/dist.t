@@ -10,7 +10,7 @@ my $dist = App::f::Dist->new(
     source  => 'cpan://J/JR/JROCKWAY/Foo-Bar-0.01.tar.gz',
 );
 
-is $dist->to_id, 'Foo-Bar';
-is $dist->named_dep('unpack'), 'Foo-Bar:unpack';
+is $dist->to_id, 'dist<Foo-Bar>';
+is $dist->named_dep('unpack'), 'dist<Foo-Bar>:unpack';
 
 done_testing;
