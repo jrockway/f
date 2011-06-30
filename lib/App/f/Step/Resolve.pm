@@ -29,24 +29,6 @@ has 'version' => (
 sub execute {
     my ($self) = @_;
 
-    my $module = $self->module;
-
-    my ($has, $version) = $self->detect_module($module);
-
-    # if we have the module and the version we want is not > than the
-    # version we have, we're done here.  if the version parsing blows
-    # up, then install anyway
-
-    try {
-        if($has && !is_newer_than($self->version, $version)){
-            $self->done({ "$module:install" => $version });
-            return;
-        }
-    }
-    catch {
-        $self->tick( message => "Version parsing blew up on $module: $_" );
-    };
-
     $self->resolve_cpanmetadb( sub {
         my $dist = shift;
 
@@ -107,20 +89,6 @@ sub resolve_cpanmetadb {
             name    => $name,
         ));
     };
-}
-
-sub detect_module {
-    my ($self, $module) = @_;
-
-    my $has = 0;
-    my $version = eval {
-        Class::MOP::load_class($module);
-        $has = 1;
-        my $meta = Class::MOP::Package->initialize($module);
-        ${$meta->get_package_symbol('$VERSION')};
-    };
-
-    return ($has, $version);
 }
 
 __PACKAGE__->meta->make_immutable;
