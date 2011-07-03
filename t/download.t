@@ -39,7 +39,9 @@ catch {
     croak $_;
 };
 
-ok -f $res->{'Moose:download'};
-is -s $res->{'Moose:download'}, 661633;
+no warnings 'uninitialized';
+
+ok -f $res->{$dist->named_dep('download')}, 'got "download" value';
+is -s $res->{$dist->named_dep('download')}, 661633, 'file is the correct size';
 
 done_testing;
