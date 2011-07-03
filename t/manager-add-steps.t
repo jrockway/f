@@ -7,7 +7,10 @@ use App::f::Breadboard::Service::Step;
 
 my $completed = 0;
 
-my $manager = App::f::Manager->new( completion_cb => sub { $completed++ } );
+my $manager = App::f::Manager->new(
+    completion_cb => sub { $completed++ },
+    error_cb      => sub { BAIL_OUT("that wasn't supposed to happen") },
+);
 
 { package WithDep;
   use Moose;

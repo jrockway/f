@@ -4,7 +4,10 @@ use Test::More;
 use ok 'App::f::Manager';
 
 my $completed = 0;
-my $manager = App::f::Manager->new( completion_cb => sub { $completed++ } );
+my $manager = App::f::Manager->new(
+    completion_cb => sub { $completed++ },
+    error_cb      => sub { },
+);
 
 my ($get, $build, $install);
 
