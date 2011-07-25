@@ -13,6 +13,7 @@ use Set::Object qw(set);
 use Scalar::Util qw(weaken);
 use JSON;
 use Try::Tiny;
+use App::f::UI;
 
 with 'MooseX::LogDispatch';
 
@@ -95,13 +96,19 @@ has 'error_cb' => (
     },
 );
 
+has 'ui' => (
+    is      => 'ro',
+    isa     => 'App::f::UI',
+    default => sub { App::f::UI->new },
+);
+
+# XXX: move to step
 sub format_step {
     my ($self, $step) = @_;
     my $name = $step->meta->name;
     $name =~ s/^App::f::Step:://g;
     my $json = JSON->new->allow_blessed(1)->convert_blessed(1)->encode($step);
     return "$name=$json";
-
 }
 
 sub handle_add_step {
@@ -127,6 +134,7 @@ sub handle_success {
 
     $self->remove_running_step($step);
     $self->insert_completed_step($step);
+    $self->ui->report_done($step);
     $self->dispatch;
 }
 
@@ -135,6 +143,8 @@ sub handle_progress {
 
     my $pretty_step = $self->format_step($step);
     $self->logger->debug( join ': ', $pretty_step, $type, join('', @rest) );
+
+    $self->ui->report_progress($step);
 }
 
 sub handle_error {
@@ -149,6 +159,7 @@ sub handle_error {
     # have satisified.  it could have been nothing, in which case we
     # can proceed.  if it was important, we will eventually deadlock
     # :)
+    $self->ui->report_done($step);
     $self->dispatch;
 }
 
@@ -183,6 +194,7 @@ sub add_step {
     }
 
     $self->add_work($step) unless $exists;
+    $self->ui->report_seen($step);
     $self->dispatch;
 
     return $step;
@@ -239,6 +251,7 @@ sub dispatch {
         "Work to do: ". join(', ', map { $self->format_step( $_ ) } @ready ),
     ) if @ready;
 
+    $self->ui->report_in_flight(@ready);
     $self->execute_step($_) for @ready;
 
     if( $self->has_work && !$self->has_running_steps ){
