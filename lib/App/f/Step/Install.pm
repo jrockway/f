@@ -36,21 +36,25 @@ sub do_install {
 sub determine_modules_installed {
     my ($self, $dir) = @_;
 
-    my @kids = $dir->children;
-    my @dirs = grep { $_->isa('Path::Class::Dir') } @kids;
-    my @files = grep { $_->isa('Path::Class::File') } @kids;
+    return eval {
+        my @kids = $dir->children;
+        my @dirs = grep { $_->isa('Path::Class::Dir') } @kids;
+        my @files = grep { $_->isa('Path::Class::File') } @kids;
 
-    my @meta = map { Module::Metadata->new_from_file( $_, collect_pod => 0 ) } @files;
-    my @data = map {
-        my $m = $_;
-        ( map { [ $_ => eval { $m->version($_)->{original} } ] }
-              grep { $_ ne 'main' } $m->packages_inside )
-    } @meta;
+        my @meta = map { Module::Metadata->new_from_file( $_, collect_pod => 0 ) } @files;
+        my @data = map {
+            eval {
+                my $m = $_;
+                ( map { [ $_ => eval { $m->version($_)->{original} } ] }
+                      grep { $_ ne 'main' } $m->packages_inside )
+            };
+        } @meta;
 
-    return (
-        @data,
-        map { $self->determine_modules_installed($_) } @dirs,
-    );
+        return (
+            @data,
+            map { $self->determine_modules_installed($_) } @dirs,
+        );
+    };
 }
 
 sub execute {
