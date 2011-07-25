@@ -4,6 +4,7 @@ use Moose;
 use namespace::autoclean;
 
 use Module::Metadata;
+use App::f::Subprocess;
 
 with 'App::f::Step::WithDist';
 
@@ -21,18 +22,15 @@ sub do_install {
     my $install_cmd = $build_type eq 'Build.PL' ?
         [qw{./Build install}] : [qw/make install/];
 
-    my $install = AnyEvent::Subprocess->new(
-        code => sub {
-            chdir $dir;
-            exec @$install_cmd,
-        },
-        on_completion => sub {
-            $self->tick( message => 'Installed '. $self->dist_name );
-            $cb->();
-        },
+    my $installer = App::f::Subprocess->new(
+        command          => $install_cmd,
+        directory        => $dir,
+        report_output_to => $self,
+        on_completion    => $cb,
     );
 
-    $install->run;
+    $self->tick( progress => "Install in $dir" );
+    $installer->run;
 }
 
 sub determine_modules_installed {
@@ -62,6 +60,8 @@ sub execute {
     my $dir        = $self->get_named_dep($deps, 'unpack');
 
     $self->do_install( $build_type, $dir, sub {
+        $self->tick( progress => "Install in $dir done" );
+
         my @mods = $self->determine_modules_installed($dir->subdir('blib'));
 
         # we installed the dist and all the modules in the dist

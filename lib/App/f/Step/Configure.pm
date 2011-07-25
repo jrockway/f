@@ -2,6 +2,7 @@ package App::f::Step::Configure;
 # ABSTRACT: step to configure a dist (read META.json, run Makefile.PL)
 use Moose;
 use namespace::autoclean;
+use App::f::Subprocess;
 
 with 'App::f::Step::WithDist';
 
@@ -31,8 +32,8 @@ sub do_configure {
 
     my $type;
 
-    $type = 'Build.PL' if -e $build_pl;
-    $type = 'Makefile.PL' if -e $makefile_pl;
+    $type = ['perl', 'Build.PL'] if -e $build_pl;
+    $type = ['perl', 'Makefile.PL'] if -e $makefile_pl;
 
     if(!$type){
         $self->error( sprintf(
@@ -43,9 +44,11 @@ sub do_configure {
         return;
     }
 
-    my $config = AnyEvent::Subprocess->new(
-        code          => sub { close *STDIN; chdir $dir; exec 'perl', $type },
-        on_completion => sub {
+    my $config = App::f::Subprocess->new(
+        command          => sub { close *STDIN; exec @$type },
+        directory        => $dir,
+        report_output_to => $self,
+        on_completion    => sub {
             $self->tick( message => 'configured ' . $self->dist->name );
             $cb->($type);
         },

@@ -12,6 +12,9 @@ use Params::Util qw(_HASH0);
 use Set::Object qw(set);
 use Scalar::Util qw(weaken);
 use JSON;
+use Try::Tiny;
+
+with 'MooseX::LogDispatch';
 
 has 'work' => (
     is      => 'ro',
@@ -128,16 +131,24 @@ sub handle_success {
 }
 
 sub handle_progress {
-    my ($self, $step, @rest) = @_;
-    print "progress: @rest\n";
+    my ($self, $step, $type, @rest) = @_;
+
+    my $pretty_step = $self->format_step($step);
+    $self->logger->debug( join ': ', $pretty_step, $type, join('', @rest) );
 }
 
 sub handle_error {
     my ($self, $step, @rest) = @_;
-    print "error: @rest\n";
+
+    my $pretty_step = $self->format_step($step);
+    $self->logger->error( join ': ', $pretty_step, join('', @rest) );
 
     $self->remove_running_step($step);
-    $self->insert_completed_step($step);
+    # TODO: we may want to make a note that this step failed, but it's
+    # useless since we didn't know what dependencies this step would
+    # have satisified.  it could have been nothing, in which case we
+    # can proceed.  if it was important, we will eventually deadlock
+    # :)
     $self->dispatch;
 }
 
@@ -197,7 +208,14 @@ sub execute_step {
     $self->insert_running_step($step);
     $self->delete_work($step);
 
-    return $step->execute(\%deps);
+    try {
+        $step->execute(\%deps);
+    }
+    catch {
+        $self->handle_error( $step, exception => $_ );
+    };
+
+    return;
 }
 
 sub build_step {
@@ -210,11 +228,17 @@ sub dispatch {
     my $self = shift;
 
     if( !$self->has_work ) {
+        $self->logger->info("No more work.  Finishing.");
         $self->finish;
         return;
     }
 
     my @ready = grep { $self->ready_to_execute($_) } $self->get_worklist;
+
+    $self->logger->info(
+        "Work to do: ". join(', ', map { $self->format_step( $_ ) } @ready ),
+    ) if @ready;
+
     $self->execute_step($_) for @ready;
 
     if( $self->has_work && !$self->has_running_steps ){

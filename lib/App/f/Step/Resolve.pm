@@ -5,6 +5,7 @@ use namespace::autoclean;
 
 use AnyEvent::HTTP;
 use YAML::XS;
+use File::Sorted;
 
 use App::f::Dist;
 use Try::Tiny;
@@ -64,6 +65,11 @@ sub execute {
     });
 
     return;
+}
+
+sub resolve_02packages {
+    my $self = shift;
+
 }
 
 sub resolve_cpanmetadb {

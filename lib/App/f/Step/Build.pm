@@ -3,6 +3,7 @@ package App::f::Step::Build;
 use Moose;
 use namespace::autoclean;
 use AnyEvent::Subprocess;
+use App::f::Subprocess;
 
 with 'App::f::Step::WithDist';
 
@@ -32,12 +33,11 @@ sub execute {
 
     my $build_cmd = $build_type eq 'Build.PL' ? ['./Build'] : ['make'];
 
-    my $build = AnyEvent::Subprocess->new(
-        code => sub {
-            chdir $dir;
-            exec @$build_cmd,
-        },
-        on_completion => sub {
+    my $build = App::f::Subprocess->new(
+        command          => $build_type,
+        directory        => $dir,
+        report_output_to => $self,
+        on_completion    => sub {
             $self->tick( message => 'Built '. $self->dist_name );
             $self->done({ $self->named_dep('build') => 1 });
         },

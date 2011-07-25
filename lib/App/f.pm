@@ -28,7 +28,8 @@ has 'manager' => (
             },
         );
     },
-    handles => [qw/add_step add_step_type has_running_steps has_completed_steps has_work/],
+    handles => [qw/add_step add_step_type has_running_steps
+                   has_completed_steps has_work add_service/],
 );
 
 has 'on_completion' => (
@@ -57,12 +58,35 @@ sub add_dist_step_type {
 sub BUILD {
     my $self = shift;
 
+    $self->add_service( Bread::Board::Literal->new(
+        name => 'cpan_mirror',
+        value => 'http://cpan.llarian.net/',
+    ));
+
+    $self->add_service( Bread::Board::Literal->new(
+        name  => 'work_directory',
+        value => '/tmp/',
+    ));
+
     $self->add_step_type( Want => {
         class => 'App::f::Step::Want',
         parameters => {
             module  => { isa => 'Str', required => 1 },
             version => { isa => 'Maybe[Str]', required => 1 },
         },
+    });
+
+    $self->add_step_type( Have => {
+        class => 'App::f::Step::Have',
+        parameters => {
+            module  => { isa => 'Str', required => 1 },
+            version => { isa => 'Maybe[Str]', required => 1 },
+        },
+    });
+
+    $self->add_step( Have => {
+        module  => 'perl',
+        version => $],
     });
 
     $self->add_step_type( Resolve => {
@@ -74,27 +98,23 @@ sub BUILD {
     });
 
     $self->add_dist_step_type( Download => {
-        class      => 'App::f::Step::Download',
-        parameters => {
-            download_directory => {
-                isa     => Dir,
-                default => '/tmp',
-            },
-
-            mirror => {
-                isa     => Uri,
-                default => 'http://cpan.llarian.net/',
-            },
+        class        => 'App::f::Step::Download',
+        dependencies => {
+            mirror => Bread::Board::Dependency->new(
+                service_path => 'cpan_mirror',
+            ),
+            download_directory => Bread::Board::Dependency->new(
+                service_path => 'work_directory',
+            ),
         },
     });
 
     $self->add_dist_step_type( Unpack => {
-        class      => 'App::f::Step::Unpack',
-        parameters => {
-            unpack_directory => {
-                isa     => Dir,
-                default => '/tmp/f-unpack',
-            },
+        class        => 'App::f::Step::Unpack',
+        dependencies => {
+            unpack_directory =>  Bread::Board::Dependency->new(
+                service_path => 'work_directory',
+            ),
         },
     });
 
@@ -145,7 +165,7 @@ sub handle_completion {
     my ($self, $is_error, $msg) = @_;
 
     if($is_error){
-        print "Error: $msg.  Exiting.\n";
+        print "Error: $msg.\n  Exiting.\n";
         exit 1;
     }
 

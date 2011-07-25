@@ -10,17 +10,32 @@ with 'App::f::Step';
 has 'module' => ( is => 'ro', isa => 'Str', required => 1 );
 has 'version' => ( is => 'ro', isa => 'Maybe[Str]', required => 1 );
 
+sub named_dep {
+    my ($self, $name) = @_;
+    return join ':', $self->module, $name;
+}
+
 sub execute {
     my $self = shift;
-    $self->tick( message => 'Want '. $self->module. ' '. ($self->version || '<undef>') );
+    $self->tick(
+        message => 'Want '. $self->module. ' '. ($self->version || '<undef>'),
+    );
+
     $self->add_step( Installed => { module => $self->module } );
 
     if(my $v = $self->has_new_enough_version){
-        $self->done({ $self->module . ':install' =>  $v, $self->module . ':want' => 1 });
+        $self->done({
+            $self->named_dep('install') => $v,
+            $self->named_dep('want')    => 1,
+        });
     }
     else {
-        $self->add_step( Resolve => { module => $self->module, version => $self->version } );
-        $self->done({ $self->module . ':want' => 1 });
+        $self->add_step( Resolve => {
+            module  => $self->module,
+            version => $self->version,
+        });
+
+        $self->done({ $self->named_dep('want') => 1 });
     }
 }
 
