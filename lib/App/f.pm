@@ -11,6 +11,7 @@ use App::f::Dist;
 with 'MooseX::Runnable', 'MooseX::Getopt::Dashes';
 
 has 'manager' => (
+    traits  => ['NoGetopt'],
     is      => 'ro',
     isa     => 'App::f::Manager',
     default => sub {
@@ -27,7 +28,7 @@ has 'manager' => (
 has 'on_completion' => (
     is        => 'rw',
     isa       => 'CodeRef',
-    traits    => ['Code'],
+    traits    => [qw/Code NoGetopt/],
     clearer   => 'clear_on_completion',
     predicate => 'has_on_completion',
     handles   => { run_on_completion => 'execute' },
